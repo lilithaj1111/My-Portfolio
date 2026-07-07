@@ -1,7 +1,7 @@
 /* Revolution of Ana — Creative Portfolio
    Edit the copy freely. Image slots are documented in /public/images/README */
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 const NAV = ["Home", "About Me", "Work", "Contact"]
 
@@ -27,38 +27,109 @@ const BRAINBOOST_TAGS = ["REACT", "TAILWIND"]
 // Graduation photos — click to switch (save as public/graduation.png & graduation2.png)
 const GRAD_SHOTS = ["/graduation.png", "/graduation2.png"]
 
-// Working-experience projects — save each image as public/work/<img>
+// Working-experience projects — screenshots live in public/work/<key>/1.png, 2.png …
 // reverse: true = laptop on the LEFT, text on the RIGHT
 const WORK_PROJECTS = [
   {
     key: "n8n",
     title: "n8n workflows",
     desc: "Automated multi-step workflows that connect apps and APIs end to end with n8n.",
-    img: "/work/n8n.png",
     reverse: false,
   },
   {
     key: "crm",
     title: "CRM Website",
     desc: "A custom CRM to manage clients, deals, and pipelines in one place.",
-    img: "/work/crm.png",
     reverse: true,
   },
   {
     key: "custom",
     title: "Custom Website",
     desc: "Bespoke, responsive websites built to fit each client's brand.",
-    img: "/work/custom.png",
     reverse: false,
   },
   {
     key: "whatsapp",
     title: "WhatsApp Automation",
     desc: "Automated WhatsApp flows for support, booking, and lead capture.",
-    img: "/work/whatsapp.png",
     reverse: true,
   },
 ]
+
+// Probe a folder for /base/1.png, 2.png … stopping at the first missing number.
+// Returns the list of image URLs that actually exist (also preloads them).
+function useFolderImages(base, max = 30) {
+  const [imgs, setImgs] = useState([])
+  useEffect(() => {
+    let cancelled = false
+    const found = []
+    const tryLoad = (n) => {
+      if (cancelled) return
+      if (n > max) {
+        setImgs(found.slice())
+        return
+      }
+      const img = new Image()
+      img.onload = () => {
+        found.push(`${base}/${n}.png`)
+        tryLoad(n + 1)
+      }
+      img.onerror = () => {
+        if (!cancelled) setImgs(found.slice())
+      }
+      img.src = `${base}/${n}.png`
+    }
+    tryLoad(1)
+    return () => {
+      cancelled = true
+    }
+  }, [base, max])
+  return imgs
+}
+
+function WorkProject({ project }) {
+  const { key, title, desc, reverse } = project
+  const shots = useFolderImages(`/work/${key}`)
+  const [idx, setIdx] = useState(0)
+  const count = shots.length
+  const current = count ? shots[idx % count] : null
+  const next = () => {
+    if (count > 1) setIdx((i) => (i + 1) % count)
+  }
+
+  return (
+    <div className={"wproj" + (reverse ? " wproj--reverse" : "")}>
+      <div className="wproj__info">
+        <h4 className="wproj__title">{title}</h4>
+        <p className="wproj__text">{desc}</p>
+      </div>
+      <div className="wproj__device">
+        <button
+          type="button"
+          className="laptop"
+          onClick={next}
+          aria-label={
+            count
+              ? `${title} screenshot ${(idx % count) + 1} of ${count} — tap for next`
+              : title
+          }
+        >
+          <div className="laptop__screen">
+            {current && (
+              <img
+                key={idx % count}
+                className="laptop__shot"
+                src={current}
+                alt={`${title} screenshot ${(idx % count) + 1}`}
+              />
+            )}
+          </div>
+          <div className="laptop__deck" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function App() {
   const [shot, setShot] = useState(0)
@@ -314,33 +385,7 @@ function App() {
 
                   <div className="wprojects">
                     {WORK_PROJECTS.map((p) => (
-                      <div
-                        key={p.key}
-                        className={
-                          "wproj" + (p.reverse ? " wproj--reverse" : "")
-                        }
-                      >
-                        <div className="wproj__info">
-                          <h4 className="wproj__title">{p.title}</h4>
-                          <p className="wproj__text">{p.desc}</p>
-                        </div>
-                        <div className="wproj__device">
-                          <div className="laptop">
-                            <div className="laptop__screen">
-                              <img
-                                className="laptop__shot"
-                                src={p.img}
-                                alt={p.title}
-                                loading="lazy"
-                                onError={(e) => {
-                                  e.currentTarget.style.visibility = "hidden"
-                                }}
-                              />
-                            </div>
-                            <div className="laptop__deck" />
-                          </div>
-                        </div>
-                      </div>
+                      <WorkProject key={p.key} project={p} />
                     ))}
                   </div>
                 </div>

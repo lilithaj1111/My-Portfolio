@@ -784,6 +784,17 @@ img {
   width: 100%;
   max-width: 400px;
   margin: 0 auto;
+  /* button resets */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: transform 0.12s ease;
+}
+.laptop:active {
+  transform: scale(0.99);
 }
 .laptop__screen {
   width: 100%;
@@ -800,6 +811,15 @@ img {
   object-fit: cover;
   object-position: top center;
   display: block;
+  animation: shotFade 0.35s ease;
+}
+@keyframes shotFade {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .laptop__deck {
   position: relative;
